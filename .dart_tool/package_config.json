@@ -158,13 +158,13 @@
       "languageVersion": "2.14"
     },
     {
-      "name": "flutter_code_lab_1",
+      "name": "namer_app",
       "rootUri": "../",
       "packageUri": "lib/",
-      "languageVersion": "2.18"
+      "languageVersion": "2.19"
     }
   ],
-  "generated": "2023-04-04T21:49:43.521925Z",
+  "generated": "2023-04-06T00:23:24.665226Z",
   "generator": "pub",
   "generatorVersion": "2.19.5"
 }
