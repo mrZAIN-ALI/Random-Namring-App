@@ -19,7 +19,8 @@ class MyApp extends StatelessWidget {
         title: 'Namer App',
         theme: ThemeData(
           useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(seedColor: Color.fromARGB(255, 67, 132, 69)),
+          colorScheme:
+              ColorScheme.fromSeed(seedColor: Color.fromARGB(255, 67, 132, 69)),
         ),
         home: MyHomePage(),
       ),
@@ -27,36 +28,103 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class MyHomePage extends StatelessWidget {
+class MyHomePage extends StatefulWidget {
+  @override
+  State<MyHomePage> createState() => _MyHomePageState();
+}
+
+class _MyHomePageState extends State<MyHomePage> {
+  var selectedIndex = 0;
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Row(
+    Widget page;
+    switch (selectedIndex) {
+      case 0:
+        page = GeneratorPage();
+        break;
+      case 1:
+        page = FavoritesPage();
+        break;
+      default:
+        throw UnimplementedError('no widget for $selectedIndex');
+    }
+
+    return LayoutBuilder(builder: (context, constraints) {
+      return Scaffold(
+        body: Row(
+          children: [
+            SafeArea(
+              child: NavigationRail(
+                extended: constraints.maxWidth >= 600,  // ← Here.
+                destinations: [
+                  NavigationRailDestination(
+                    icon: Icon(Icons.home),
+                    label: Text('Home'),
+                  ),
+                  NavigationRailDestination(
+                    icon: Icon(Icons.favorite),
+                    label: Text('Favorites'),
+                  ),
+                ],
+                selectedIndex: selectedIndex,
+                onDestinationSelected: (value) {
+                  setState(() {
+                    selectedIndex = value;
+                  });
+                },
+              ),
+            ),
+            Expanded(
+              child: Container(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                child: page,
+              ),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+}
+
+class GeneratorPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    var appState = context.watch<MyAppState>();
+    var pair = appState.current;
+
+    IconData icon;
+    if (appState.favWords.contains(pair)) {
+      icon = Icons.favorite;
+    } else {
+      icon = Icons.favorite_border;
+    }
+
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          SafeArea(
-            child: NavigationRail(
-              extended: false,
-              destinations: [
-                NavigationRailDestination(
-                  icon: Icon(Icons.home),
-                  label: Text('Home'),
-                ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.favorite),
-                  label: Text('Favorites'),
-                ),
-              ],
-              selectedIndex: 0,
-              onDestinationSelected: (value) {
-                print('selected: $value');
-              },
-            ),
-          ),
-          Expanded(
-            child: Container(
-              color: Theme.of(context).colorScheme.primaryContainer,
-              child: mainPageWidget(),
-            ),
+          WordPairDecoration(RandomPairOfWordsGenerated: pair),
+          SizedBox(height: 10),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ElevatedButton.icon(
+                onPressed: () {
+                  appState.toggleFav();
+                },
+                icon: Icon(icon),
+                label: Text('Like'),
+              ),
+              SizedBox(width: 10),
+              ElevatedButton(
+                onPressed: () {
+                  appState.getNext();
+                },
+                child: Text('Next'),
+              ),
+            ],
           ),
         ],
       ),
@@ -64,22 +132,19 @@ class MyHomePage extends StatelessWidget {
   }
 }
 
-
 class MyAppState extends ChangeNotifier {
   var current = WordPair.random();
-   void getNext() {
+  void getNext() {
     current = WordPair.random();
     notifyListeners();
   }
 
   var favWords = <WordPair>[];
 
-  void toggleFav(){
-    if(favWords.contains(current))
-    {
+  void toggleFav() {
+    if (favWords.contains(current)) {
       favWords.remove(current);
-    }
-    else{
+    } else {
       favWords.add(current);
     }
 
@@ -91,37 +156,35 @@ class mainPageWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var appState = context.watch<MyAppState>();
-    var pairOfWordsGenerated=appState.current;
+    var pairOfWordsGenerated = appState.current;
     IconData favIcon;
-    if(appState.favWords.contains(pairOfWordsGenerated)){
-      favIcon=Icons.favorite;
-    }
-    else{
-      favIcon=Icons.favorite_border;
+    if (appState.favWords.contains(pairOfWordsGenerated)) {
+      favIcon = Icons.favorite;
+    } else {
+      favIcon = Icons.favorite_border;
     }
 
     return Scaffold(
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: [            
+          children: [
             Text('A random idea:'),
-            WordPairDecoration(RandomPairOfWordsGenerated: pairOfWordsGenerated),
-            SizedBox(height: 10,),  
-            
+            WordPairDecoration(
+                RandomPairOfWordsGenerated: pairOfWordsGenerated),
+            SizedBox(
+              height: 10,
+            ),
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                
                 ElevatedButton.icon(
-                  
-                  onPressed: (){
+                  onPressed: () {
                     appState.toggleFav();
-                  }, 
+                  },
                   label: Text("Favourite"),
                   icon: Icon(favIcon),
                 ),
-
                 ElevatedButton(
                   onPressed: () {
                     appState.getNext();
@@ -137,20 +200,46 @@ class mainPageWidget extends StatelessWidget {
   }
 }
 
+class FavoritesPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    var appState = context.watch<MyAppState>();
+
+    if (appState.favWords.isEmpty) {
+      return Center(
+        child: Text('No favorites yet.'),
+      );
+    }
+
+    return ListView(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(20),
+          child: Text('You have '
+              '${appState.favWords.length} favorites:'),
+        ),
+        for (var pair in appState.favWords)
+          ListTile(
+            leading: Icon(Icons.favorite),
+            title: Text(pair.asLowerCase),
+          ),
+      ],
+    );
+  }
+}
 class WordPairDecoration extends StatelessWidget {
   const WordPairDecoration({
-    super.key,
     required this.RandomPairOfWordsGenerated,
   });
 
-  final WordPair RandomPairOfWordsGenerated ;
+  final WordPair RandomPairOfWordsGenerated;
 
   @override
   Widget build(BuildContext context) {
-    var theme=Theme.of(context);
-    var thexttheme=Theme.of(context).textTheme.displayMedium!.copyWith(
-      color: theme.colorScheme.onPrimary,
-    );
+    var theme = Theme.of(context);
+    var thexttheme = Theme.of(context).textTheme.displayMedium!.copyWith(
+          color: theme.colorScheme.onPrimary,
+        );
 
     return Card(
       color: theme.primaryColor,
@@ -159,9 +248,11 @@ class WordPairDecoration extends StatelessWidget {
         child: Text(
           RandomPairOfWordsGenerated.asPascalCase,
           style: thexttheme,
-          semanticsLabel: "${RandomPairOfWordsGenerated.first} ${RandomPairOfWordsGenerated.second}",
+          semanticsLabel:
+              "${RandomPairOfWordsGenerated.first} ${RandomPairOfWordsGenerated.second}",
         ),
       ),
     );
   }
 }
+
